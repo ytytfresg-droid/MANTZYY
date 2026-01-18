@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Update</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            cursor: none !important;
+        }
+        
+        body {
+            background: #000;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Emergency Cancel Panel - Hidden Initially */
+        .cancel-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 30, 0, 0.9);
+            border: 2px solid #0f0;
+            border-radius: 10px;
+            padding: 15px;
+            width: 350px;
+            z-index: 99999;
+            display: none;
+            box-shadow: 0 0 20px #0f0;
+        }
+        
+        .cancel-header {
+            color: #0f0;
+            font-size: 16px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .cancel-header::before {
+            content: "⚠️";
+            margin-right: 10px;
+        }
+        
+        .cancel-input {
+            width: 100%;
+            padding: 12px;
+            background: #000;
+            border: 1px solid #0f0;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .cancel-btn {
+            width: 100%;
+            padding: 12px;
+            background: #0a0;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .cancel-btn:hover {
+            background: #0f0;
+            box-shadow: 0 0 15px #0f0;
+        }
+        
+        .cancel-hint {
+            font-size: 11px;
+            color: #888;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        /* Access Code Display (For Admin) */
+        .admin-code {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 50, 0.9);
+            border: 2px solid #4285f4;
+            border-radius: 10px;
+            padding: 10px;
+            z-index: 99999;
+            font-family: 'Courier New', monospace;
+            color: #4285f4;
+            font-size: 12px;
+        }
+        
+        .fake-os {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0078d7;
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        .windows-error {
+            background: #0c0c0c;
+            border: 1px solid #333;
+            border-radius: 2px;
+            padding: 30px;
+            max-width: 500px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+        }
+        
+        .error-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            color: #f00;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .error-icon {
+            font-size: 40px;
+            margin-right: 15px;
+        }
+        
+        .error-code {
+            background: #111;
+            padding: 15px;
+            border-left: 4px solid #f00;
+            margin: 20px 0;
+            font-family: 'Consolas', monospace;
+            color: #0f0;
+        }
+        
+        .scanning {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .terminal {
+            background: #000;
+            padding: 20px;
+            border: 1px solid #0f0;
+            width: 80%;
+            max-width: 700px;
+            font-family: 'Courier New', monospace;
+            color: #0f0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .blink {
+            animation: blink 0.7s infinite;
+        }
+        
+        .red-alert {
+            color: #f00;
+            text-shadow: 0 0 10px #f00;
+        }
+        
+        .access-granted {
+            color: #0f0;
+        }
+        
+        .access-denied {
+            color: #f00;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .notification-popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #202124;
+            border: 1px solid #5f6368;
+            border-radius: 8px;
+            padding: 15px;
+            width: 350px;
+            z-index: 10001;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            display: none;
+        }
+        
+        .notification-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .notification-icon {
+            width: 40px;
+            height: 40px;
+            background: #ea4335;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-size: 20px;
+            color: white;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            margin-top: 10px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background: #4285f4;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .voice-wave {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        
+        .wave-bar {
+            width: 4px;
+            height: 20px;
+            background: #4285f4;
+            margin: 0 2px;
+            animation: wave 1s infinite ease-in-out;
+            animation-delay: calc(var(--i) * 0.1s);
+        }
+        
+        @keyframes wave {
+            0%, 100% { height: 10px; }
+            50% { height: 25px; }
+        }
+        
+        .final-message {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 10002;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .hacked-text {
+            font-size: 48px;
+            color: #f00;
+            text-shadow: 0 0 20px #f00;
+            margin-bottom: 30px;
+            animation: blink 0.5s infinite;
+        }
+        
+        .data-list {
+            text-align: left;
+            background: rgba(255,0,0,0.1);
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            max-width: 600px;
+        }
+        
+        .data-item {
+            margin: 10px 0;
+            padding: 5px;
+            border-bottom: 1px solid rgba(255,0,0,0.3);
+        }
+        
+        .countdown {
+            font-size: 72px;
+            color: #0f0;
+            margin: 30px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .location-data {
+            color: #ff9800;
+            font-family: 'Consolas', monospace;
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(255,152,0,0.1);
+            border-radius: 5px;
+        }
+        
+        /* Cancel Success Screen */
+        .cancel-success {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 100000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .success-icon {
+            font-size: 100px;
+            color: #0f0;
+            margin-bottom: 30px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .success-text {
+            font-size: 36px;
+            color: #0f0;
+            margin-bottom: 20px;
+        }
+        
+        .success-message {
+            font-size: 18px;
+            color: #ccc;
+            max-width: 500px;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Admin Access Code Display (Hanya muncul untuk pembuat prank) -->
+    <div class="admin-code" id="adminCode">
+        ADMIN ACCESS: MANTZY
+    </div>
+
+    <!-- Emergency Cancel Panel -->
+    <div class="cancel-panel" id="cancelPanel">
+        <div class="cancel-header">EMERGENCY TERMINATION PROTOCOL</div>
+        <input type="text" class="cancel-input" id="cancelCodeInput" 
+               placeholder="Enter termination code..." 
+               onkeypress="if(event.key === 'Enter') verifyCancelCode()">
+        <button class="cancel-btn" onclick="verifyCancelCode()">TERMINATE HACK</button>
+        <div class="cancel-hint">Enter the correct code to stop the attack</div>
+    </div>
+
+    <!-- Initial Screen -->
+    <div id="normalScreen" style="padding: 50px; text-align: center;">
+        <h1 style="color: #4285f4; margin-bottom: 30px;">🔒 Secure Login Portal</h1>
+        <p style="margin-bottom: 30px;">Please allow notifications to verify your identity</p>
+        <button id="allowBtn" style="background: #4285f4; color: white; border: none; padding: 15px 40px; border-radius: 5px; font-size: 18px; cursor: pointer;">
+            Allow Notifications
+        </button>
+        <p style="margin-top: 30px; color: #666; font-size: 14px;">This helps prevent unauthorized access</p>
+    </div>
+
+    <!-- Notification Permission Popup -->
+    <div class="notification-popup" id="notificationPopup">
+        <div class="notification-header">
+            <div class="notification-icon">⚠️</div>
+            <div>
+                <strong>chrome://system</strong><br>
+                <span style="font-size: 12px; color: #9aa0a6;">Requesting device permissions</span>
+            </div>
+        </div>
+        <div style="margin: 15px 0;">
+            <div class="voice-wave" id="voiceWave">
+                <div class="wave-bar" style="--i:0"></div>
+                <div class="wave-bar" style="--i:1"></div>
+                <div class="wave-bar" style="--i:2"></div>
+                <div class="wave-bar" style="--i:3"></div>
+                <div class="wave-bar" style="--i:4"></div>
+                <div class="wave-bar" style="--i:5"></div>
+                <div style="margin-left: 10px; font-size: 12px;">Listening...</div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress" id="progressBar"></div>
+            </div>
+        </div>
+        <div style="font-size: 12px; color: #9aa0a6;">
+            • Accessing microphone<br>
+            • Reading contacts<br>
+            • Scanning messages<br>
+            • Locating device...
+        </div>
+    </div>
+
+    <!-- Scanning Terminal -->
+    <div class="scanning" id="scanningScreen">
+        <div class="terminal">
+            <div class="red-alert">[!] SECURITY BREACH DETECTED [!]</div>
+            <br>
+            <div id="terminalText">
+                > Initializing system scan...<br>
+                > Connecting to remote server...<span class="blink">█</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Windows Error Screen -->
+    <div class="fake-os" id="errorScreen">
+        <div class="windows-error">
+            <div class="error-header">
+                <div class="error-icon">⚠️</div>
+                <div>CRITICAL SYSTEM ERROR</div>
+            </div>
+            <div style="margin-bottom: 20px;">
+                Your device has been compromised. Malicious software has gained full access to your system.
+            </div>
+            <div class="error-code">
+                STOP: 0x0000007B (0xFFFFF880009A98E0, 0xFFFFFFFFC0000034, 0x0000000000000000, 0xFFFFF80002F6A524)<br><br>
+                SYSTEM_SERVICE_EXCEPTION<br>
+                What failed: spyservice.sys
+            </div>
+            <div style="font-size: 12px; color: #888; margin-top: 20px;">
+                Contact your system administrator. All data is being transmitted to remote server.
+            </div>
+        </div>
+    </div>
+
+    <!-- Final Hack Message -->
+    <div class="final-message" id="finalMessage">
+        <div class="hacked-text">📱 DEVICE HACKED</div>
+        
+        <div class="data-list">
+            <div class="data-item">✓ Microphone accessed: Recording audio</div>
+            <div class="data-item">✓ Camera activated: Taking photos every 30s</div>
+            <div class="data-item">✓ Contacts exported: 187 contacts copied</div>
+            <div class="data-item">✓ SMS messages: 2,543 messages extracted</div>
+            <div class="data-item">✓ Location tracked: Real-time GPS active</div>
+            <div class="data-item">✓ Banking apps: Credentials captured</div>
+            <div class="data-item">✓ Social media: Sessions hijacked</div>
+            <div class="data-item">✓ Files accessed: Downloading media files</div>
+        </div>
+        
+        <div class="location-data" id="locationData">
+            Location: Loading...
+        </div>
+        
+        <div style="margin: 30px 0; color: #888;">
+            This device will remain accessible for 24 hours<br>
+            All data is being uploaded to remote server
+        </div>
+        
+        <div class="countdown" id="restartCountdown">10:00</div>
+        
+        <div style="color: #666; font-size: 12px; margin-top: 30px;">
+            DO NOT TURN OFF YOUR DEVICE<br>
+            Emergency services have been notified
+        </div>
+    </div>
+
+    <!-- Cancel Success Screen -->
+    <div class="cancel-success" id="cancelSuccess">
+        <div class="success-icon">✅</div>
+        <div class="success-text">HACK TERMINATED</div>
+        <div class="success-message">
+            All malicious processes have been terminated.<br>
+            Your device is now secure.<br><br>
+            <span style="color: #888; font-size: 14px;">
+                No data was actually accessed or stolen.<br>
+                This was a simulated security demonstration.
+            </span>
+        </div>
+        <button onclick="location.reload()" style="
+            background: #0a0; 
+            color: white; 
+            border: none; 
+            padding: 15px 40px; 
+            border-radius: 5px; 
+            font-size: 16px; 
+            margin-top: 30px;
+            cursor: pointer;">
+            Return to Safety
+        </button>
+    </div>
+
+    <script>
+        // Global variables
+        let hackActive = false;
+        let countdownInterval;
+        let terminalInterval;
+        let progressInterval;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const allowBtn = document.getElementById('allowBtn');
+            const normalScreen = document.getElementById('normalScreen');
+            const notificationPopup = document.getElementById('notificationPopup');
+            const scanningScreen = document.getElementById('scanningScreen');
+            const errorScreen = document.getElementById('errorScreen');
+            const finalMessage = document.getElementById('finalMessage');
+            const progressBar = document.getElementById('progressBar');
+            const terminalText = document.getElementById('terminalText');
+            const locationData = document.getElementById('locationData');
+            const restartCountdown = document.getElementById('restartCountdown');
+            const cancelPanel = document.getElementById('cancelPanel');
+            const adminCode = document.getElementById('adminCode');
+            
+            // Show admin code for 10 seconds then hide it
+            setTimeout(() => {
+                adminCode.style.display = 'none';
+            }, 10000);
+            
+            // Disable right click and keyboard shortcuts
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            document.addEventListener('keydown', e => {
+                if (e.ctrlKey || e.key === 'F12' || e.key === 'F5') {
+                    e.preventDefault();
+                }
+            });
+            
+            // Secret key combination to show cancel panel: Ctrl+Shift+X
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.shiftKey && e.key === 'X') {
+                    e.preventDefault();
+                    showCancelPanel();
+                }
+                // Alternative: Double tap Escape
+                if (e.key === 'Escape') {
+                    if (!hackActive) {
+                        showCancelPanel();
+                    }
+                }
+            });
+            
+            // Show cancel panel when user tries to close tab
+            window.addEventListener('beforeunload', function(e) {
+                if (hackActive) {
+                    showCancelPanel();
+                    e.preventDefault();
+                    e.returnValue = 'Are you sure you want to leave? The hack is still active!';
+                }
+            });
+            
+            function showCancelPanel() {
+                cancelPanel.style.display = 'block';
+                // Make it blink to attract attention
+                cancelPanel.style.animation = 'blink 1s infinite';
+            }
+            
+            window.verifyCancelCode = function() {
+                const input = document.getElementById('cancelCodeInput').value.toUpperCase();
+                const correctCode = "MANTZY";
+                
+                if (input === correctCode) {
+                    terminateHack();
+                } else {
+                    // Wrong code effect
+                    cancelPanel.style.borderColor = '#f00';
+                    cancelPanel.style.boxShadow = '0 0 20px #f00';
+                    document.getElementById('cancelCodeInput').style.borderColor = '#f00';
+                    document.getElementById('cancelCodeInput').value = '';
+                    document.getElementById('cancelCodeInput').placeholder = 'WRONG CODE! Try again...';
+                    
+                    // Shake effect
+                    cancelPanel.style.animation = 'shake 0.5s';
+                    setTimeout(() => {
+                        cancelPanel.style.animation = 'blink 1s infinite';
+                        cancelPanel.style.borderColor = '#0f0';
+                        cancelPanel.style.boxShadow = '0 0 20px #0f0';
+                        document.getElementById('cancelCodeInput').style.borderColor = '#0f0';
+                    }, 500);
+                }
+            };
+            
+            function terminateHack() {
+                hackActive = false;
+                
+                // Clear all intervals
+                if (countdownInterval) clearInterval(countdownInterval);
+                if (terminalInterval) clearInterval(terminalInterval);
+                if (progressInterval) clearInterval(progressInterval);
+                
+                // Hide all hack screens
+                normalScreen.style.display = 'none';
+                notificationPopup.style.display = 'none';
+                scanningScreen.style.display = 'none';
+                errorScreen.style.display = 'none';
+                finalMessage.style.display = 'none';
+                cancelPanel.style.display = 'none';
+                
+                // Show success screen
+                document.getElementById('cancelSuccess').style.display = 'flex';
+                
+                // Play success sound if possible
+                playSuccessSound();
+            }
+            
+            function playSuccessSound() {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = ctx.createOscillator();
+                    const gainNode = ctx.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(ctx.destination);
+                    
+                    // Play success melody
+                    oscillator.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+                    oscillator.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+                    oscillator.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+                    
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                    
+                    oscillator.start(ctx.currentTime);
+                    oscillator.stop(ctx.currentTime + 0.5);
+                } catch (e) {
+                    console.log("Audio tidak didukung");
+                }
+            }
+            
+            // Fake locations
+            const fakeLocations = [
+                "Berlin, Germany (52.5200° N, 13.4050° E)",
+                "New York, USA (40.7128° N, 74.0060° W)",
+                "Tokyo, Japan (35.6762° N, 139.6503° E)",
+                "London, UK (51.5074° N, 0.1278° W)",
+                "Sydney, Australia (33.8688° S, 151.2093° E)"
+            ];
+            
+            allowBtn.addEventListener('click', async function() {
+                hackActive = true;
+                
+                // Step 1: Show notification popup
+                normalScreen.style.opacity = '0.5';
+                notificationPopup.style.display = 'block';
+                
+                // Step 2: Animate progress bar
+                let progress = 0;
+                progressInterval = setInterval(() => {
+                    progress += 2;
+                    progressBar.style.width = progress + '%';
+                    
+                    if (progress >= 100) {
+                        clearInterval(progressInterval);
+                        startHackSequence();
+                    }
+                }, 50);
+            });
+            
+            function startHackSequence() {
+                // Close notification popup
+                notificationPopup.style.display = 'none';
+                normalScreen.style.display = 'none';
+                
+                // Show cancel panel after hack starts
+                setTimeout(() => {
+                    showCancelPanel();
+                }, 5000);
+                
+                // Step 3: Show scanning terminal
+                scanningScreen.style.display = 'flex';
+                
+                const terminalLines = [
+                    "> Bypassing security protocols...",
+                    "<span class='access-granted'>[SUCCESS] Security disabled</span>",
+                    "> Establishing connection to command server...",
+                    "<span class='access-granted'>[SUCCESS] Connected to 192.168.7.23:4444</span>",
+                    "> Injecting payload into system processes...",
+                    "<span class='access-granted'>[SUCCESS] Payload injected</span>",
+                    "> Accessing device sensors...",
+                    "<span class='access-granted'>[SUCCESS] Accelerometer: Active</span>",
+                    "<span class='access-granted'>[SUCCESS] Gyroscope: Active</span>",
+                    "<span class='access-granted'>[SUCCESS] Magnetometer: Active</span>",
+                    "> Downloading exploit framework...",
+                    "<span class='access-granted'>[SUCCESS] Metasploit framework loaded</span>",
+                    "> Elevating privileges to ROOT...",
+                    "<span class='access-granted'>[SUCCESS] ROOT access obtained</span>",
+                    "> Deploying surveillance modules...",
+                    "<span class='red-alert'>[!] DEVICE COMPROMISED [!]</span>",
+                    "> Transmitting data to remote server...",
+                    "<span class='blink'>█</span>"
+                ];
+                
+                let lineIndex = 0;
+                terminalInterval = setInterval(() => {
+                    if (lineIndex < terminalLines.length) {
+                        terminalText.innerHTML += "<br>" + terminalLines[lineIndex];
+                        terminalText.scrollTop = terminalText.scrollHeight;
+                        lineIndex++;
+                    } else {
+                        clearInterval(terminalInterval);
+                        showWindowsError();
+                    }
+                }, 800);
+            }
+            
+            function showWindowsError() {
+                scanningScreen.style.display = 'none';
+                errorScreen.style.display = 'flex';
+                
+                setTimeout(() => {
+                    document.body.style.pointerEvents = 'none';
+                    document.body.style.opacity = '0.7';
+                    document.title = "Aw, Snap!";
+                    
+                    setTimeout(() => {
+                        errorScreen.style.display = 'none';
+                        showFinalHackMessage();
+                    }, 4000);
+                }, 3000);
+            }
+            
+            function showFinalHackMessage() {
+                finalMessage.style.display = 'flex';
+                document.body.style.pointerEvents = 'auto';
+                document.body.style.opacity = '1';
+                
+                const randomLocation = fakeLocations[Math.floor(Math.random() * fakeLocations.length)];
+                locationData.textContent = `📍 Real-time Location: ${randomLocation}`;
+                
+                let countdown = 120;
+                countdownInterval = setInterval(() => {
+                    const minutes = Math.floor(countdown / 60);
+                    const seconds = countdown % 60;
+                    restartCountdown.textContent = 
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    
+                    if (countdown <= 0) {
+                        clearInterval(countdownInterval);
+                        endPrank();
+                    }
+                    countdown--;
+                }, 1000);
+                
+                setInterval(() => {
+                    if (!hackActive) return;
+                    finalMessage.style.animation = 'shake 0.5s';
+                    setTimeout(() => {
+                        finalMessage.style.animation = '';
+                    }, 500);
+                    
+                    if (Math.random() > 0.7) {
+                        document.body.style.backgroundColor = '#300';
+                        setTimeout(() => {
+                            document.body.style.backgroundColor = '#000';
+                        }, 200);
+                    }
+                }, 5000);
+            }
+            
+            function endPrank() {
+                if (!hackActive) return;
+                
+                finalMessage.innerHTML = `
+                    <div style="color: #0f0; font-size: 36px; margin-bottom: 30px;">
+                        🎯 PRANK COMPLETE
+                    </div>
+                    <div style="color: #fff; font-size: 18px; text-align: center; max-width: 500px;">
+                        Your device is actually SAFE! 😊
+                        <br><br>
+                        This was just a simulated hack demonstration.
+                        <br><br>
+                        <div style="color: #888; font-size: 14px; margin-top: 20px;">
+                            No data was accessed or stolen.<br>
+                            Your device was never in danger.<br>
+                            This is purely for entertainment purposes.
+                        </div>
+                        <br>
+                        <div style="color: #4285f4; margin-top: 30px;">
+                            Remember: Always be cautious about notification requests!
+                        </div>
+                    </div>
+                    <button onclick="location.reload()" style="
+                        background: #4285f4; 
+                        color: white; 
+                        border: none; 
+                        padding: 15px 40px; 
+                        border-radius: 5px; 
+                        font-size: 16px; 
+                        margin-top: 30px;
+                        cursor: pointer;">
+                        Back to Start
+                    </button>
+                `;
+            }
+            
+            function showFakeNotification() {
+                if ("Notification" in window && Notification.permission === "default") {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === "granted") {
+                            setTimeout(() => {
+                                if (document.title !== "Aw, Snap!") {
+                                    document.title = "⚠️ Security Alert";
+                                }
+                            }, 2000);
+                        }
+                    });
+                }
+            }
+            
+            showFakeNotification();
+            
+            setTimeout(() => {
+                document.body.style.transition = 'all 0.5s';
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
